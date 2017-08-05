@@ -142,24 +142,24 @@ class ModelMetaclass(type):
                 if v.primary_key:
                     #找到主键
                     if primaryKey:
-                        raise StandardError('Duplicate primary key for field: %s'% k)
+                        raise RuntimeError('Duplicate primary key for field: %s'% k)
                     primaryKey = k
                 else:
                     fileds.append(k)
-            if not primaryKey:
-                raise StandardError('Primary key not found.')
-            for k in mappings.keys():
-                attrs.pop(k)
-            escaped_fields = list(map(lambda f: '`%s`' % f,fileds))
-            attrs['__mappings__'] = mappings   #保存属性和列的映射关系
-            attrs['__table__'] = tableName
-            attrs['__primary_key__'] = primaryKey
-            attrs['__fields__'] = fileds
-            attrs['__select__'] = 'select `%s`,%s from `%s`' % (primaryKey,', '.join(escaped_fields),tableName)
-            attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName,', '.join(escaped_fields),primaryKey,create_args_string(len(escaped_fields)+1))
-            attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName,', '.join(map(lambda f: '`%s`=?'% (mappings.get(f).name or f),fileds)),primaryKey)
-            attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName,primaryKey)
-            return type.__new__(cls,name,bases,attrs)
+        if not primaryKey:
+            raise RuntimeError('Primary key not found.')
+        for k in mappings.keys():
+            attrs.pop(k)
+        escaped_fields = list(map(lambda f: '`%s`' % f,fileds))
+        attrs['__mappings__'] = mappings   #保存属性和列的映射关系
+        attrs['__table__'] = tableName
+        attrs['__primary_key__'] = primaryKey
+        attrs['__fields__'] = fileds
+        attrs['__select__'] = 'select `%s`,%s from `%s`' % (primaryKey,', '.join(escaped_fields),tableName)
+        attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName,', '.join(escaped_fields),primaryKey,create_args_string(len(escaped_fields)+1))
+        attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName,', '.join(map(lambda f: '`%s`=?'% (mappings.get(f).name or f),fileds)),primaryKey)
+        attrs['__delete__'] = 'delete from `%s` where `%s`=?' % (tableName,primaryKey)
+        return type.__new__(cls,name,bases,attrs)
 
 
 class Model(dict,metaclass=ModelMetaclass):
