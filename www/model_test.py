@@ -9,8 +9,9 @@ import asyncio
 
 async def test(loop):
     await orm.create_pool(user='www-data',password='www-data',db='awesome',loop=loop)
-    u = User(name='Test2',email='test2@example.com',passwd='12345678',image='about:blank')
+    u = User(name='Test4',email='test4@example.com',passwd='12345678',image='about:blank')
+    #u1=u
     await u.save()
-    
+    #await u1.remove()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(test(loop))
