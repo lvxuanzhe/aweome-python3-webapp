@@ -54,7 +54,7 @@ async def create_pool(loop,**kw):
 async def select(sql,args,size=None):
     log(sql,args)
     global __pool
-    async with __pool.get() as conn:
+    async with __pool.acquire() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cur:
             await cur.execute(sql.replace('?','%s'),args or ())
             if size:
@@ -67,7 +67,8 @@ async def select(sql,args,size=None):
 
 async def execute(sql,args,autocommit=True):
     log(sql)
-    async with __pool.get() as conn:
+    global __pool
+    async with __pool.acquire() as conn:
         if not autocommit:
             await conn.begin()
         try:
