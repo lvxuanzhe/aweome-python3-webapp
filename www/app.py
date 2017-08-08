@@ -16,6 +16,7 @@ from jinja2 import Environment, FileSystemLoader
 
 import orm
 from coroweb import add_routes,add_static
+from config import configs
 
 
 def init_jinja2(app,**kw):
@@ -115,7 +116,7 @@ async def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
-                r['__user__'] = request.__user__
+                #r['__user__'] = request.__user__
                 # 如果有'__template__'为key的值，则说明要套用jinja2的模板，'__template__'Key对应的为模板网页所在位置
                 resp = web.Response(body=app['__templating__'].get_template(
                     template).render(**r).encode('utf-8'))
@@ -155,7 +156,7 @@ def datetime_filter(t):
 
 async def init(loop):
     # 创建数据库连接池，db参数传配置文件里的配置db
-    await orm.create_pool(loop=loop, host='127.0.0.1',port=3306,user='www-data',password='www-data',db='awesome')
+    await orm.create_pool(loop=loop, **configs.db)
     # middlewares设置两个中间处理函数
     # middlewares中的每个factory接受两个参数，app 和 handler(即middlewares中得下一个handler)
     # 譬如这里logger_factory的handler参数其实就是response_factory()

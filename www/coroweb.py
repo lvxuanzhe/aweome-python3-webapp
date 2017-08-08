@@ -43,7 +43,7 @@ def get_required_kw_args(fn): #获取没有默认值的命名关键字参数
     args = []
     params = inspect.signature(fn).parameters
     for name,param in params.items():
-        if str(param.kind) == 'KEYWORD_ONLY' and param.default == inspect.Parameter.empty:
+        if param.kind == inspect.Parameter.KEYWORD_ONLY and param.default == inspect.Parameter.empty:
             args.append(name)
     return tuple(args)
 
@@ -51,33 +51,35 @@ def get_named_kw_args(fn): #获取命名关键字参数
     args = []
     params = inspect.signature(fn).parameters
     for name,param in params.items():
-        if str(param.kind) == 'KEYWORD_ONLY':
+        if param.kind == inspect.Parameter.KEYWORD_ONLY:
             args.append(name)
     return tuple(args)
 
 def has_named_kw_args(fn): #判断有没有命名关键字参数
     params = inspect.signature(fn).parameters
     for name,param in params.items():
-        if str(param.kind) == 'KEYWORD_ONLY':
+        if param.kind == inspect.Parameter.KEYWORD_ONLY:
             return True
 
 def has_var_kw_args(fn): #判断有没有关键字参数
     params = inspect.signature(fn).parameters
     for name,param in params.items():
-        if str(param.kind) == 'VAR_KEYWORD':
+        if param.kind == inspect.Parameter.VAR_KEYWORD:
             return True
 
 def has_request_args(fn): #判断有没有'request'参数，且该参数是否为最后一个参数
-    params = inspect.signature(fn).parameters
     sig = inspect.signature(fn)
+    params = sig.parameters
     found = False
     for name,param in params.items():
         if name == 'request':
             found = True
             continue
-        if found and (str(param.kind) != 'KEYWORD_ONLY' and str(param.kind) != 'VAR_POSITIONAL' and str(param.kind) != 'VAR_KEYWORD'):
+        if found and (param.kind != inspect.Parameter.VAR_POSITIONAL
+                      and param.kind != inspect.Parameter.KEYWORD_ONLY
+                      and param.kind != inspect.Parameter.VAR_KEYWORD):
             raise ValueError('request parameter must be the last named parameter in function: %s%s'%(fn.__name__,str(sig)))
-        return found
+    return found
 
 
 #定义RequestHandler,正式向request参数获取URL处理函数所需的参数
@@ -91,9 +93,9 @@ class RequestHandler(object):
         self._has_var_kw_arg = has_var_kw_args(fn)
         self._has_request_arg = has_request_args(fn)
 
-    async def __call__(self,request): #__call__这里要构造协程
+    async def __call__(self , request): #__call__这里要构造协程
         kw = None
-        if self._has_named_kw_arg or self._has_var_kw_arg:
+        if self._has_named_kw_arg or self._has_var_kw_arg or self._required_kw_args:
             if request.method == 'POST': #判断客户端发来的方法是否为POST
                 if not request.content_type: #查询有没提交数据的格式（EncType）
                     return web.HTTPBadRequest(text='Missing Content_Type.')#这里被廖大坑了，要有text
@@ -131,7 +133,7 @@ class RequestHandler(object):
             kw['request'] = request
         if self._required_kw_args: #假如命名关键字参数(没有附加默认值)，request没有提供相应的数值，报错
             for name in self._required_kw_args:
-                if name not in kw:
+                if not name in kw:
                     return web.HTTPBadRequest(text='Missing argument: %s'%(name))
         logging.info('call with args: %s' % str(kw))
 
