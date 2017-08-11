@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 import orm
 from coroweb import add_routes,add_static
 from config import configs
+from handlers import cookie2user,COOKIE_NAME
 
 
 def init_jinja2(app,**kw):
@@ -70,6 +71,22 @@ async def data_factory(app, handler):
                 logging.info('request form : %s' % str(request.__data__))
         return (await handler(request))
     return parse_data
+
+#在处理URL之前，把cookie解析出来，并将登录用户绑定到request对象上，这样，
+#后续的URL处理函数就可以直接拿到登录用户
+async def auth_factory(app,handler):
+    async def auth(request):
+        logging.info('check user: %s %s' % (request.method,request.path))
+        request.__user__ = None
+        cookie_str = request.cookies.get(COOKIE_NAME)
+        if cookie_str:
+            user = await cookie2user(cookie_str)
+            if user:
+                logging.info('set current user:%s' % user.email)
+                request.__user__ = user
+        return (await handler(request))
+    return auth
+
 
 # 响应处理
 # 总结下来一个请求在服务端收到后的方法调用顺序是:
