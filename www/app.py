@@ -133,7 +133,7 @@ async def response_factory(app, handler):
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
-                #r['__user__'] = request.__user__
+                r['__user__'] = request.__user__
                 # 如果有'__template__'为key的值，则说明要套用jinja2的模板，'__template__'Key对应的为模板网页所在位置
                 resp = web.Response(body=app['__templating__'].get_template(
                     template).render(**r).encode('utf-8'))
@@ -179,7 +179,7 @@ async def init(loop):
     # 譬如这里logger_factory的handler参数其实就是response_factory()
     # middlewares的最后一个元素的Handler会通过routes查找到相应的，其实就是routes注册的对应handler
     app = web.Application(loop=loop, middlewares=[
-        logger_factory, response_factory
+        logger_factory, auth_factory, response_factory
     ])
     # 初始化jinja2模板
     init_jinja2(app, filters=dict(datetime=datetime_filter))
